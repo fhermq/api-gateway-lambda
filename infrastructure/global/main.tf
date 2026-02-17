@@ -54,6 +54,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
   rule {
     id     = "delete-old-state-versions"
     status = "Enabled"
+    filter {}
 
     # Keep only the last 7 days of old versions
     noncurrent_version_expiration {
@@ -134,6 +135,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state_logs" {
   rule {
     id     = "delete-old-logs"
     status = "Enabled"
+    filter {}
 
     # Delete logs older than 30 days
     expiration {
@@ -143,11 +145,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state_logs" {
     # Delete old versions after 7 days
     noncurrent_version_expiration {
       noncurrent_days = 7
-    }
-
-    # Remove delete markers
-    expiration {
-      expired_object_delete_marker = true
     }
   }
 }
