@@ -27,11 +27,9 @@ jobs:
     name: Validate Terraform
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
@@ -39,257 +37,143 @@ jobs:
         run: terraform fmt -check -recursive infrastructure/
         continue-on-error: true
 
-      - name: Terraform Validate (Global)
+      - name: Validate Global
         run: |
           cd infrastructure/global
           terraform init -backend=false
           terraform validate
 
-      - name: Terraform Validate (Dev)
+      - name: Validate Dev
         run: |
           cd infrastructure/environments/dev
           terraform init -backend=false
           terraform validate
 
-      - name: Terraform Validate (Staging)
+      - name: Validate Staging
         run: |
           cd infrastructure/environments/staging
           terraform init -backend=false
           terraform validate
 
-      - name: Terraform Validate (Prod)
+      - name: Validate Prod
         run: |
           cd infrastructure/environments/prod
           terraform init -backend=false
           terraform validate
 
-  plan:
-    name: Plan Infrastructure
+  plan-dev:
+    name: Plan Dev
     runs-on: ubuntu-latest
     needs: validate
-    strategy:
-      matrix:
-        environment: [dev, staging, prod]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init (${{ matrix.environment }})
+      - name: Terraform Plan
         run: |
-          cd infrastructure/environments/${{ matrix.environment }}
+          cd infrastructure/environments/dev
           terraform init
-
-      - name: Terraform Plan (${{ matrix.environment }})
-        run: |
-          cd infrastructure/environments/${{ matrix.environment }}
           terraform plan -out=tfplan
 
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          name: tfplan-${{ matrix.environment }}
-          path: infrastructure/environments/${{ matrix.environment }}/tfplan
+          name: tfplan-dev
+          path: infrastructure/environments/dev/tfplan
           retention-days: 1
 
-  validate-infrastructure:
-    name: Validate Infrastructure
+  plan-staging:
+    name: Plan Staging
     runs-on: ubuntu-latest
-    needs: plan
+    needs: validate
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Run validation scripts
-        run: |
-          chmod +x infrastructure/scripts/*.sh
-          echo "=== Validating Infrastructure ==="
-          ./infrastructure/scripts/validate-infrastructure.sh
-          echo ""
-          echo "=== Detecting Orphaned Resources ==="
-          ./infrastructure/scripts/detect-orphaned-resources.sh
-
-  apply-dev:
-    name: Apply Dev Infrastructure
-    runs-on: ubuntu-latest
-    needs: validate-infrastructure
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: dev
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v3
+      - name: Terraform Plan
+        run: |
+          cd infrastructure/environments/staging
+          terraform init
+          terraform plan -out=tfplan
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: tfplan-staging
+          path: infrastructure/environments/staging/tfplan
+          retention-days: 1
+
+  plan-prod:
+    name: Plan Prod
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Plan
+        run: |
+          cd infrastructure/environments/prod
+          terraform init
+          terraform plan -out=tfplan
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: tfplan-prod
+          path: infrastructure/environments/prod/tfplan
+          retention-days: 1
+
+  apply-dev:
+    name: Apply Dev
+    runs-on: ubuntu-latest
+    needs: plan-dev
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/download-artifact@v3
         with:
           name: tfplan-dev
           path: infrastructure/environments/dev/
 
-      - name: Terraform Apply (Dev)
+      - name: Apply
         run: |
           cd infrastructure/environments/dev
           terraform init
           terraform apply -auto-approve tfplan
 
-      - name: Output Infrastructure Details
+      - name: Output
         run: |
           cd infrastructure/environments/dev
-          echo "=== Infrastructure Outputs ==="
           terraform output
-
-      - name: Log to CloudWatch
-        if: always()
-        run: |
-          aws logs create-log-stream \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name dev-deployment || true
-          aws logs put-log-events \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name dev-deployment \
-            --log-events timestamp=$(date +%s000),message="Dev infrastructure deployment completed"
-
-  apply-staging:
-    name: Apply Staging Infrastructure
-    runs-on: ubuntu-latest
-    needs: validate-infrastructure
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: staging
-      approval_required: true
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: tfplan-staging
-          path: infrastructure/environments/staging/
-
-      - name: Terraform Apply (Staging)
-        run: |
-          cd infrastructure/environments/staging
-          terraform init
-          terraform apply -auto-approve tfplan
-
-      - name: Output Infrastructure Details
-        run: |
-          cd infrastructure/environments/staging
-          echo "=== Infrastructure Outputs ==="
-          terraform output
-
-      - name: Log to CloudWatch
-        if: always()
-        run: |
-          aws logs create-log-stream \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name staging-deployment || true
-          aws logs put-log-events \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name staging-deployment \
-            --log-events timestamp=$(date +%s000),message="Staging infrastructure deployment completed"
-
-  apply-prod:
-    name: Apply Prod Infrastructure
-    runs-on: ubuntu-latest
-    needs: validate-infrastructure
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: prod
-      approval_required: true
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: tfplan-prod
-          path: infrastructure/environments/prod/
-
-      - name: Terraform Apply (Prod)
-        run: |
-          cd infrastructure/environments/prod
-          terraform init
-          terraform apply -auto-approve tfplan
-
-      - name: Output Infrastructure Details
-        run: |
-          cd infrastructure/environments/prod
-          echo "=== Infrastructure Outputs ==="
-          terraform output
-
-      - name: Log to CloudWatch
-        if: always()
-        run: |
-          aws logs create-log-stream \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name prod-deployment || true
-          aws logs put-log-events \
-            --log-group-name /aws/github-actions/infrastructure \
-            --log-stream-name prod-deployment \
-            --log-events timestamp=$(date +%s000),message="Prod infrastructure deployment completed"
-
-  cleanup:
-    name: Cleanup Artifacts
-    runs-on: ubuntu-latest
-    needs: [apply-dev, apply-staging, apply-prod]
-    if: always()
-    steps:
-      - name: Delete Plan Artifacts
-        uses: geekyeggo/delete-artifact@v2
-        with:
-          name: |
-            tfplan-dev
-            tfplan-staging
-            tfplan-prod
