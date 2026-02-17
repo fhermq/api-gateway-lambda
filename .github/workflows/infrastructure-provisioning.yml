@@ -96,6 +96,11 @@ jobs:
           cd infrastructure/global
           terraform apply -auto-approve tfplan
 
+      - name: Terraform Init (with backend)
+        run: |
+          cd infrastructure/global
+          terraform init -backend=true -reconfigure -input=false
+
   plan-dev:
     name: Plan Dev
     runs-on: ubuntu-latest
