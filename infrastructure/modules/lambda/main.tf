@@ -90,11 +90,11 @@ resource "aws_lambda_function" "api_handler" {
 # ============================================================================
 
 resource "aws_lambda_alias" "api_handler_live" {
-  count             = var.create_alias ? 1 : 0
-  name              = "live"
-  description       = "Live alias for ${var.project_name}-api-handler"
-  function_name     = aws_lambda_function.api_handler.function_name
-  function_version  = aws_lambda_function.api_handler.version
+  count            = var.create_alias ? 1 : 0
+  name             = "live"
+  description      = "Live alias for ${var.project_name}-api-handler"
+  function_name    = aws_lambda_function.api_handler.function_name
+  function_version = aws_lambda_function.api_handler.version
 }
 
 # ============================================================================
@@ -175,7 +175,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   namespace           = "AWS/Lambda"
   period              = "300"
   statistic           = "Average"
-  threshold           = var.lambda_timeout * 1000 * 0.8  # 80% of timeout
+  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout
   alarm_description   = "Alert when Lambda function duration is high"
   treat_missing_data  = "notBreaching"
 

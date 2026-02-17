@@ -11,10 +11,10 @@ data "aws_region" "current" {}
 # ============================================================================
 
 resource "aws_dynamodb_table" "items" {
-  name           = "${var.project_name}-items-${var.environment}"
-  billing_mode   = var.dynamodb_billing_mode
-  hash_key       = "id"
-  stream_enabled = true
+  name             = "${var.project_name}-items-${var.environment}"
+  billing_mode     = var.dynamodb_billing_mode
+  hash_key         = "id"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   # Attributes

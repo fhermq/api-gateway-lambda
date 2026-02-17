@@ -74,26 +74,26 @@ module "dynamodb" {
 # Lambda Module (for CRUD functions)
 module "lambda" {
   source = "../../modules/lambda"
-  
-  environment              = var.environment
-  project_name             = var.project_name
-  lambda_code_path         = var.lambda_code_path
-  lambda_memory            = var.lambda_memory
-  lambda_timeout           = var.lambda_timeout
-  log_retention_days       = var.log_retention_days
-  dynamodb_table_name      = module.dynamodb.table_name
+
+  environment               = var.environment
+  project_name              = var.project_name
+  lambda_code_path          = var.lambda_code_path
+  lambda_memory             = var.lambda_memory
+  lambda_timeout            = var.lambda_timeout
+  log_retention_days        = var.log_retention_days
+  dynamodb_table_name       = module.dynamodb.table_name
   lambda_execution_role_arn = module.iam.lambda_execution_role_arn
-  tags                     = var.tags
+  tags                      = var.tags
 }
 
 # API Gateway Module (for REST endpoints)
 module "api_gateway" {
   source = "../../modules/api_gateway"
-  
-  environment           = var.environment
-  project_name          = var.project_name
-  lambda_invoke_arn     = module.lambda.function_invoke_arn
-  lambda_function_name  = module.lambda.function_name
-  log_retention_days    = var.log_retention_days
-  tags                  = var.tags
+
+  environment          = var.environment
+  project_name         = var.project_name
+  lambda_invoke_arn    = module.lambda.function_invoke_arn
+  lambda_function_name = module.lambda.function_name
+  log_retention_days   = var.log_retention_days
+  tags                 = var.tags
 }
