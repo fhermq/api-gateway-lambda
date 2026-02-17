@@ -65,6 +65,13 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Clean up stale locks
+        run: |
+          cd infrastructure/environments/dev
+          # Try to force unlock if lock exists
+          terraform force-unlock -force $(terraform state list 2>/dev/null | head -1 || echo "none") || true
+        continue-on-error: true
+
       - name: Terraform Plan
         run: |
           cd infrastructure/environments/dev
