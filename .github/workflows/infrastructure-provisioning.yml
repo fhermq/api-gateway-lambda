@@ -76,7 +76,7 @@ jobs:
         run: |
           cd infrastructure/environments/dev
           terraform init
-          terraform plan -out=tfplan
+          terraform plan -lock=false -out=tfplan
 
       - uses: actions/upload-artifact@v4
         with:
