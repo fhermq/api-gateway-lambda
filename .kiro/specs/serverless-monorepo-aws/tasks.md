@@ -31,18 +31,22 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Add outputs for state bucket name and lock table name
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
-- [x] 4. Configure GitHub OIDC Provider in AWS
-  - Create infrastructure/global/oidc.tf with AWS IAM OIDC provider for GitHub
+- [x] 4. Configure GitHub OIDC Provider in AWS (via Bootstrap)
+  - Create infrastructure/bootstrap/ directory for one-time setup
+  - Create infrastructure/bootstrap/main.tf with AWS IAM OIDC provider for GitHub
   - Configure OIDC provider with GitHub's OIDC endpoint and thumbprint
-  - Add outputs for OIDC provider ARN
-  - Document OIDC configuration in README.md with setup instructions
+  - Create Infrastructure_Role with trust policy for GitHub OIDC
+  - Create Lambda_Deployment_Role with trust policy for GitHub OIDC
+  - Add outputs for OIDC provider ARN and role ARNs
+  - Document bootstrap setup in infrastructure/bootstrap/README.md
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 14.3_
 
-- [x] 5. Implement IAM Roles with Least Privilege Permissions
-  - Create infrastructure/modules/iam/main.tf with Infrastructure_Role for Terraform
-  - Define Infrastructure_Role with permissions for API Gateway, Lambda, DynamoDB, S3, and IAM
-  - Create Lambda_Deployment_Role with permissions to update Lambda code and environment variables
-  - Create Lambda_Execution_Role with permissions for DynamoDB and CloudWatch Logs
+- [x] 5. Implement IAM Roles with Least Privilege Permissions (via Bootstrap)
+  - Create infrastructure/bootstrap/policies/terraform-policy.json with all Terraform permissions
+  - Create infrastructure/bootstrap/policies/lambda-deploy-policy.json with Lambda deployment permissions
+  - Create infrastructure/bootstrap/policies/lambda-execution-policy.json for Lambda runtime
+  - Attach policies to roles in bootstrap/main.tf
+  - Define least privilege permissions for each role
   - Add trust relationships for GitHub OIDC provider with repository and branch conditions
   - Add outputs for all role ARNs
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 5.5_
@@ -366,7 +370,33 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Ensure validation scripts are working correctly
   - Ask the user if they're ready to proceed with GitHub Actions integration
 
-- [x] 25. Create GitHub Actions Infrastructure Provisioning Workflow
+- [x] 25. Bootstrap GitHub Actions Prerequisites (One-Time Setup)
+  - Create infrastructure/bootstrap/ directory for bootstrap Terraform
+  - Create infrastructure/bootstrap/main.tf with:
+    - GitHub OIDC provider configuration
+    - Infrastructure_Role with OIDC trust policy
+    - Lambda_Deployment_Role with OIDC trust policy
+    - Attach policy documents to roles
+  - Create infrastructure/bootstrap/variables.tf with:
+    - github_org variable
+    - github_repo variable
+    - github_branch variable (default: main)
+  - Create infrastructure/bootstrap/outputs.tf with:
+    - OIDC provider ARN
+    - Infrastructure_Role ARN
+    - Lambda_Deployment_Role ARN
+  - Create infrastructure/bootstrap/policies/ directory with JSON policy files:
+    - terraform-policy.json (S3, DynamoDB, API Gateway, Lambda, IAM, CloudWatch, KMS, Logs)
+    - lambda-deploy-policy.json (S3, Lambda, CloudWatch Logs)
+    - lambda-execution-policy.json (DynamoDB, CloudWatch Logs)
+  - Create infrastructure/bootstrap/README.md with:
+    - One-time setup instructions
+    - How to run: `terraform apply -var="github_org=YOUR_ORG" -var="github_repo=YOUR_REPO"`
+    - Expected outputs (role ARNs)
+    - How to verify setup
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+
+- [x] 26. Create GitHub Actions Infrastructure Provisioning Workflow
   - Create .github/workflows/infrastructure-provisioning.yml
   - Configure trigger on push to infrastructure/ folder on main branch
   - Add step to checkout code
@@ -381,7 +411,7 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Add step to log to CloudWatch on success/failure
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9_
 
-- [x] 26. Create GitHub Actions Lambda Deployment Workflow
+- [x] 27. Create GitHub Actions Lambda Deployment Workflow
   - Create .github/workflows/lambda-deployment.yml
   - Configure trigger on push to apps/api-handler/ folder on main branch
   - Add step to checkout code
@@ -397,15 +427,15 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Add step to log deployment to CloudWatch
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9_
 
-- [ ] 27. Implement Data Layer - DynamoDB Schemas and Migrations
+- [ ] 28. Implement Data Layer - DynamoDB Schemas and Migrations
   - Create data/schemas/items.json with DynamoDB table schema definition
   - Create data/migrations/001_create_items_table.js with migration script
   - Create data/seeds/dev_seed.js with seed data for development environment
   - Document table structure, indexes, and access patterns in data/README.md
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 28. Implement Comprehensive Documentation
-  - [ ] 28.1 Update README.md with complete project documentation
+- [ ] 29. Implement Comprehensive Documentation
+  - [ ] 29.1 Update README.md with complete project documentation
     - Add project overview and key features
     - Add architecture diagram (Mermaid)
     - Add setup instructions for local development
@@ -414,76 +444,76 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
     - Add examples of API requests and responses
     - _Requirements: 14.1, 14.2, 14.4, 14.5, 14.6, 14.7_
   
-  - [ ] 28.2 Create ARCHITECTURE.md with detailed architecture documentation
+  - [ ] 29.2 Create ARCHITECTURE.md with detailed architecture documentation
     - Add component descriptions and relationships
     - Add data flow diagrams
     - Add security architecture
     - _Requirements: 14.2_
   
-  - [ ] 28.3 Create CONFIGURATION.md with environment variables and configuration options
+  - [ ] 29.3 Create CONFIGURATION.md with environment variables and configuration options
     - Document all Terraform variables
     - Document all Lambda environment variables
     - Document GitHub Actions secrets required
     - _Requirements: 14.8_
   
-  - [ ] 28.4 Create OIDC_SETUP.md with GitHub OIDC configuration instructions
+  - [ ] 29.4 Create OIDC_SETUP.md with GitHub OIDC configuration instructions
     - Step-by-step guide for configuring GitHub OIDC
     - AWS IAM setup instructions
     - GitHub repository settings
     - _Requirements: 14.3_
 
-- [ ] 29. Implement Security Validation and Hardening
-  - [ ] 29.1 Add security scanning to CI/CD workflows
+- [ ] 30. Implement Security Validation and Hardening
+  - [ ] 30.1 Add security scanning to CI/CD workflows
     - Add secret scanning to detect hardcoded credentials
     - Add dependency vulnerability scanning
     - Add Terraform security scanning (tfsec)
     - _Requirements: 13.1, 13.2, 16_
   
-  - [ ] 29.2 Verify no hardcoded secrets in code
+  - [ ] 30.2 Verify no hardcoded secrets in code
     - Scan all code files for AWS credentials, API keys, secrets
     - Verify all sensitive data is in GitHub Actions secrets or Terraform variables
     - _Requirements: 2.8, 13.1, 13.2_
   
-  - [ ] 29.3 Verify HTTPS enforcement
+  - [ ] 30.3 Verify HTTPS enforcement
     - Verify API Gateway uses HTTPS only
     - Verify HTTP requests are redirected or rejected
     - _Requirements: 13.6_
 
-- [ ] 30. Implement CloudWatch Logging and Monitoring
-  - [ ] 30.1 Configure CloudWatch Log Groups
+- [ ] 31. Implement CloudWatch Logging and Monitoring
+  - [ ] 31.1 Configure CloudWatch Log Groups
     - Create log groups for Lambda functions with 30-day retention
     - Create log groups for API Gateway with 30-day retention
     - Create log groups for Terraform provisioning with 30-day retention
     - _Requirements: 11.4_
   
-  - [ ] 30.2 Implement CloudWatch Alarms and Dashboards
+  - [ ] 31.2 Implement CloudWatch Alarms and Dashboards
     - Create alarms for Lambda errors and throttling
     - Create alarms for API Gateway errors
     - Create dashboard for monitoring system health
     - _Requirements: 11.1, 11.6, 11.7_
 
-- [ ] 31. Final Testing and Validation
-  - [ ] 31.1 Run all unit tests and verify 80% code coverage
+- [ ] 32. Final Testing and Validation
+  - [ ] 32.1 Run all unit tests and verify 80% code coverage
     - Execute jest with coverage report
     - Verify coverage meets minimum threshold
     - _Requirements: 15.1, 15.6_
   
-  - [ ] 31.2 Run all integration tests
+  - [ ] 32.2 Run all integration tests
     - Execute integration test suite
     - Verify all tests pass
     - _Requirements: 15.2_
   
-  - [ ] 31.3 Run Terraform validation tests
+  - [ ] 32.3 Run Terraform validation tests
     - Execute terraform validate for all environments
     - Execute terraform plan for all environments
     - _Requirements: 15.4_
   
-  - [ ] 31.4 Verify error handling and edge cases
+  - [ ] 32.4 Verify error handling and edge cases
     - Test all error scenarios documented in design
     - Test edge cases (empty inputs, max sizes, special characters)
     - _Requirements: 15.3, 15.8_
 
-- [ ] 32. Checkpoint - All Tests Pass and Documentation Complete
+- [ ] 33. Checkpoint - All Tests Pass and Documentation Complete
   - Ensure all unit tests pass with 80%+ coverage
   - Ensure all integration tests pass
   - Ensure all smoke tests pass
@@ -491,24 +521,24 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Ensure documentation is complete and accurate
   - Ask the user if questions arise about the implementation
 
-- [ ] 33. Prepare for Production Deployment
-  - [ ] 33.1 Create production environment configuration
+- [ ] 34. Prepare for Production Deployment
+  - [ ] 34.1 Create production environment configuration
     - Create infrastructure/environments/prod/terraform.tfvars with production values
     - Configure production approval gates in GitHub Actions workflows
     - _Requirements: 7.5, 8.8, 8.9_
   
-  - [ ] 33.2 Set up production monitoring and alerting
+  - [ ] 34.2 Set up production monitoring and alerting
     - Configure CloudWatch alarms for production environment
     - Set up SNS notifications for critical alerts
     - _Requirements: 11.1, 11.6, 11.7_
   
-  - [ ] 33.3 Document production deployment process
+  - [ ] 34.3 Document production deployment process
     - Create DEPLOYMENT.md with step-by-step production deployment guide
     - Document rollback procedures
     - Document incident response procedures
     - _Requirements: 14.5_
 
-- [ ] 34. Final Checkpoint - Ready for Production
+- [ ] 35. Final Checkpoint - Ready for Production
   - Verify all infrastructure code is production-ready
   - Verify all application code is production-ready
   - Verify all CI/CD workflows are configured correctly

@@ -7,73 +7,67 @@ on:
     paths:
       - 'apps/api-handler/**'
       - '.github/workflows/lambda-deployment.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/api-handler/**'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - staging
-          - prod
 
 env:
   AWS_REGION: us-east-1
-  NODE_VERSION: '18'
   LAMBDA_FUNCTION_NAME: api-handler
+  NODE_VERSION: '18'
 
 jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: 'apps/api-handler/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm ci
 
       - name: Run ESLint
-        run: npm run lint
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm run lint
 
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: 'apps/api-handler/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm ci
 
       - name: Run unit tests
-        run: npm run test:unit -- --coverage
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm run test:unit -- --coverage
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -85,76 +79,71 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: 'apps/api-handler/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm ci
 
       - name: Run integration tests
-        run: npm run test:integration
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm run test:integration
 
   build:
     name: Build Lambda Package
     runs-on: ubuntu-latest
-    needs: [lint, unit-tests, integration-tests]
-    permissions:
-      contents: read
-
+    needs: [unit-tests, integration-tests]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: 'apps/api-handler/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: apps/api-handler
-
-      - name: Build Lambda package
-        run: npm run build
-        working-directory: apps/api-handler
+        run: |
+          cd apps/api-handler
+          npm ci --production
 
       - name: Create deployment package
         run: |
-          cd apps/api-handler/dist
-          zip -r ../../lambda-deployment.zip .
-          cd ../../..
+          cd apps/api-handler
+          mkdir -p dist
+          cp -r src/* dist/
+          cp -r node_modules dist/
+          cd dist
+          zip -r ../lambda-deployment.zip .
 
-      - name: Upload deployment package
+      - name: Upload Lambda package
         uses: actions/upload-artifact@v3
         with:
-          name: lambda-deployment-package
-          path: apps/lambda-deployment.zip
+          name: lambda-package
+          path: apps/api-handler/lambda-deployment.zip
           retention-days: 1
 
   deploy-dev:
     name: Deploy to Dev
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      contents: read
-      id-token: write
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -162,58 +151,48 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/Lambda_Deployment_Role
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Lambda_Deployment_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download deployment package
+      - name: Download Lambda package
         uses: actions/download-artifact@v3
         with:
-          name: lambda-deployment-package
+          name: lambda-package
           path: ./
 
-      - name: Get S3 bucket name
-        id: s3-bucket
+      - name: Upload to S3
         run: |
-          BUCKET_NAME=$(aws s3 ls | grep "dev-lambda-code" | awk '{print $3}')
-          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-
-      - name: Upload code to S3
-        run: |
-          aws s3 cp lambda-deployment.zip s3://${{ steps.s3-bucket.outputs.bucket_name }}/lambda-code-$(date +%s).zip
+          aws s3 cp lambda-deployment.zip s3://dev-lambda-code/api-handler-$(date +%s).zip
 
       - name: Update Lambda function
         run: |
+          LATEST_S3_KEY=$(aws s3 ls s3://dev-lambda-code/ | sort | tail -n 1 | awk '{print $4}')
           aws lambda update-function-code \
-            --function-name dev-${{ env.LAMBDA_FUNCTION_NAME }} \
-            --s3-bucket ${{ steps.s3-bucket.outputs.bucket_name }} \
-            --s3-key lambda-code-$(date +%s).zip
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-dev \
+            --s3-bucket dev-lambda-code \
+            --s3-key $LATEST_S3_KEY
 
-      - name: Wait for Lambda update
+      - name: Wait for update
         run: |
           aws lambda wait function-updated \
-            --function-name dev-${{ env.LAMBDA_FUNCTION_NAME }}
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-dev
 
-      - name: Run smoke tests
-        run: |
-          npm run test:smoke
-        working-directory: apps/api-handler
-
-      - name: Log deployment to CloudWatch
+      - name: Log to CloudWatch
+        if: always()
         run: |
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name dev-deployment \
-            --log-events timestamp=$(date +%s000),message="Lambda deployment successful for dev environment"
+            --log-events timestamp=$(date +%s000),message="Dev Lambda deployment completed successfully"
 
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      contents: read
-      id-token: write
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      approval_required: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -221,58 +200,48 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/Lambda_Deployment_Role
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Lambda_Deployment_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download deployment package
+      - name: Download Lambda package
         uses: actions/download-artifact@v3
         with:
-          name: lambda-deployment-package
+          name: lambda-package
           path: ./
 
-      - name: Get S3 bucket name
-        id: s3-bucket
+      - name: Upload to S3
         run: |
-          BUCKET_NAME=$(aws s3 ls | grep "staging-lambda-code" | awk '{print $3}')
-          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-
-      - name: Upload code to S3
-        run: |
-          aws s3 cp lambda-deployment.zip s3://${{ steps.s3-bucket.outputs.bucket_name }}/lambda-code-$(date +%s).zip
+          aws s3 cp lambda-deployment.zip s3://staging-lambda-code/api-handler-$(date +%s).zip
 
       - name: Update Lambda function
         run: |
+          LATEST_S3_KEY=$(aws s3 ls s3://staging-lambda-code/ | sort | tail -n 1 | awk '{print $4}')
           aws lambda update-function-code \
-            --function-name staging-${{ env.LAMBDA_FUNCTION_NAME }} \
-            --s3-bucket ${{ steps.s3-bucket.outputs.bucket_name }} \
-            --s3-key lambda-code-$(date +%s).zip
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-staging \
+            --s3-bucket staging-lambda-code \
+            --s3-key $LATEST_S3_KEY
 
-      - name: Wait for Lambda update
+      - name: Wait for update
         run: |
           aws lambda wait function-updated \
-            --function-name staging-${{ env.LAMBDA_FUNCTION_NAME }}
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-staging
 
-      - name: Run smoke tests
-        run: |
-          npm run test:smoke
-        working-directory: apps/api-handler
-
-      - name: Log deployment to CloudWatch
+      - name: Log to CloudWatch
+        if: always()
         run: |
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name staging-deployment \
-            --log-events timestamp=$(date +%s000),message="Lambda deployment successful for staging environment"
+            --log-events timestamp=$(date +%s000),message="Staging Lambda deployment completed successfully"
 
   deploy-prod:
     name: Deploy to Prod
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      contents: read
-      id-token: write
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: prod
+      approval_required: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -280,63 +249,79 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/Lambda_Deployment_Role
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Lambda_Deployment_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download deployment package
+      - name: Download Lambda package
         uses: actions/download-artifact@v3
         with:
-          name: lambda-deployment-package
+          name: lambda-package
           path: ./
 
-      - name: Get S3 bucket name
-        id: s3-bucket
+      - name: Upload to S3
         run: |
-          BUCKET_NAME=$(aws s3 ls | grep "prod-lambda-code" | awk '{print $3}')
-          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-
-      - name: Upload code to S3
-        run: |
-          aws s3 cp lambda-deployment.zip s3://${{ steps.s3-bucket.outputs.bucket_name }}/lambda-code-$(date +%s).zip
+          aws s3 cp lambda-deployment.zip s3://prod-lambda-code/api-handler-$(date +%s).zip
 
       - name: Update Lambda function
         run: |
+          LATEST_S3_KEY=$(aws s3 ls s3://prod-lambda-code/ | sort | tail -n 1 | awk '{print $4}')
           aws lambda update-function-code \
-            --function-name prod-${{ env.LAMBDA_FUNCTION_NAME }} \
-            --s3-bucket ${{ steps.s3-bucket.outputs.bucket_name }} \
-            --s3-key lambda-code-$(date +%s).zip
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-prod \
+            --s3-bucket prod-lambda-code \
+            --s3-key $LATEST_S3_KEY
 
-      - name: Wait for Lambda update
+      - name: Wait for update
         run: |
           aws lambda wait function-updated \
-            --function-name prod-${{ env.LAMBDA_FUNCTION_NAME }}
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }}-prod
 
-      - name: Run smoke tests
-        run: |
-          npm run test:smoke
-        working-directory: apps/api-handler
-
-      - name: Log deployment to CloudWatch
+      - name: Log to CloudWatch
+        if: always()
         run: |
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name prod-deployment \
-            --log-events timestamp=$(date +%s000),message="Lambda deployment successful for prod environment"
+            --log-events timestamp=$(date +%s000),message="Prod Lambda deployment completed successfully"
 
-  notify:
-    name: Notify Deployment Status
+  smoke-tests:
+    name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [deploy-dev, deploy-staging, deploy-prod]
     if: always()
-    permissions:
-      contents: read
-
     steps:
-      - name: Check deployment status
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/api-handler/package-lock.json'
+
+      - name: Install dependencies
         run: |
-          if [ "${{ needs.deploy-dev.result }}" == "success" ] || [ "${{ needs.deploy-staging.result }}" == "success" ] || [ "${{ needs.deploy-prod.result }}" == "success" ]; then
-            echo "✅ Lambda deployment completed successfully"
-          else
-            echo "❌ Lambda deployment failed"
-            exit 1
-          fi
+          cd apps/api-handler
+          npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Lambda_Deployment_Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run smoke tests
+        run: |
+          cd apps/api-handler
+          npm run test:smoke
+
+  cleanup:
+    name: Cleanup Artifacts
+    runs-on: ubuntu-latest
+    needs: [smoke-tests]
+    if: always()
+    steps:
+      - name: Delete Lambda package artifact
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: lambda-package
