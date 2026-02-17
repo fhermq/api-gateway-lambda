@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.js
+*.js.map
+*.d.ts
+.env
+.env.local
+.DS_Store
+coverage/
+.nyc_output/
+lambda-function.zip
+.terraform/
+*.tfstate
+*.tfstate.*

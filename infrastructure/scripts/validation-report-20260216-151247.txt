@@ -1,0 +1,128 @@
+Terraform Infrastructure Validation Report
+Generated: Mon Feb 16 15:12:47 CST 2026
+========================================
+
+[2026-02-16 15:12:47] Starting Terraform Infrastructure Validation...
+[2026-02-16 15:12:47] =========================================
+[2026-02-16 15:12:47] Validating dev environment
+[2026-02-16 15:12:47] =========================================
+[2026-02-16 15:12:47] Validating Terraform syntax for dev environment...
+[2026-02-16 15:12:48] ✗ Terraform syntax invalid for dev
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 48:
+[31m│[0m [0m  48: [4mmodule "s3"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 57:
+[31m│[0m [0m  57: [4mmodule "iam"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 68:
+[31m│[0m [0m  68: [4mmodule "dynamodb"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[2026-02-16 15:12:48] Checking Terraform formatting for dev environment...
+[2026-02-16 15:12:48] ✓ Terraform formatting correct for dev
+[2026-02-16 15:12:48] Validating required variables for dev environment...
+[2026-02-16 15:12:48] ✓ All required variables present for dev
+[2026-02-16 15:12:48] Validating module references for dev environment...
+[2026-02-16 15:12:48] ✓ All required modules referenced for dev
+[2026-02-16 15:12:48] Validating outputs for dev environment...
+[2026-02-16 15:12:48] ✓ All required outputs defined for dev
+[2026-02-16 15:12:48] =========================================
+[2026-02-16 15:12:48] Validating staging environment
+[2026-02-16 15:12:48] =========================================
+[2026-02-16 15:12:48] Validating Terraform syntax for staging environment...
+[2026-02-16 15:12:48] ✗ Terraform syntax invalid for staging
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 48:
+[31m│[0m [0m  48: [4mmodule "s3"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 57:
+[31m│[0m [0m  57: [4mmodule "iam"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 68:
+[31m│[0m [0m  68: [4mmodule "dynamodb"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[2026-02-16 15:12:48] Checking Terraform formatting for staging environment...
+[2026-02-16 15:12:48] ✓ Terraform formatting correct for staging
+[2026-02-16 15:12:48] Validating required variables for staging environment...
+[2026-02-16 15:12:48] ✓ All required variables present for staging
+[2026-02-16 15:12:48] Validating module references for staging environment...
+[2026-02-16 15:12:48] ✓ All required modules referenced for staging
+[2026-02-16 15:12:48] Validating outputs for staging environment...
+[2026-02-16 15:12:49] ✓ All required outputs defined for staging
+[2026-02-16 15:12:49] =========================================
+[2026-02-16 15:12:49] Validating prod environment
+[2026-02-16 15:12:49] =========================================
+[2026-02-16 15:12:49] Validating Terraform syntax for prod environment...
+[2026-02-16 15:12:49] ✗ Terraform syntax invalid for prod
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 48:
+[31m│[0m [0m  48: [4mmodule "s3"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 57:
+[31m│[0m [0m  57: [4mmodule "iam"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mModule not installed[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 68:
+[31m│[0m [0m  68: [4mmodule "dynamodb"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThis module is not yet installed. Run "terraform init" to install all
+[31m│[0m [0mmodules required by this configuration.
+[31m╵[0m[0m
+[2026-02-16 15:12:49] Checking Terraform formatting for prod environment...
+[2026-02-16 15:12:49] ✓ Terraform formatting correct for prod
+[2026-02-16 15:12:49] Validating required variables for prod environment...
+[2026-02-16 15:12:49] ✓ All required variables present for prod
+[2026-02-16 15:12:49] Validating module references for prod environment...
+[2026-02-16 15:12:49] ✓ All required modules referenced for prod
+[2026-02-16 15:12:49] Validating outputs for prod environment...
+[2026-02-16 15:12:49] ✓ All required outputs defined for prod
+[2026-02-16 15:12:49] =========================================
+[2026-02-16 15:12:49] ✗ Some validations failed!
+[2026-02-16 15:12:49] Report saved to: /Users/fhermq/code/kiro/05-api-gateway-lambda/infrastructure/scripts/validation-report-20260216-151247.txt

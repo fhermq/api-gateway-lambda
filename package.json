@@ -1,0 +1,38 @@
+{
+  "name": "serverless-monorepo-aws",
+  "version": "1.0.0",
+  "description": "Production-ready serverless monorepo with Lambda, API Gateway, and DynamoDB",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .js,.ts",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "validate:terraform": "cd infrastructure && terraform validate",
+    "validate:infrastructure": "bash infrastructure/scripts/validate-infrastructure.sh",
+    "detect:orphans": "bash infrastructure/scripts/detect-orphaned-resources.sh",
+    "analyze:costs": "bash infrastructure/scripts/cost-analysis.sh",
+    "validate:destroy": "bash infrastructure/scripts/destroy-validation.sh"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "serverless",
+    "aws",
+    "lambda",
+    "terraform",
+    "monorepo",
+    "iac"
+  ],
+  "author": "",
+  "license": "MIT"
+}
