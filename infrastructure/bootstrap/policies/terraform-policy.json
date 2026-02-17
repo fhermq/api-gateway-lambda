@@ -26,7 +26,7 @@
         "dynamodb:PutItem",
         "dynamodb:DeleteItem"
       ],
-      "Resource": "arn:aws:dynamodb:*:*:table/*-terraform-locks"
+      "Resource": "arn:aws:dynamodb:*:*:table/terraform-locks"
     },
     {
       "Sid": "APIGatewayManagement",
