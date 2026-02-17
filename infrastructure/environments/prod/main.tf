@@ -88,6 +88,7 @@ module "lambda" {
   log_retention_days       = var.log_retention_days
   dynamodb_table_name      = module.dynamodb.table_name
   lambda_execution_role_arn = module.iam.lambda_execution_role_arn
+  create_alarms            = true  # Enable CloudWatch alarms for production
   tags                     = var.tags
 }
 

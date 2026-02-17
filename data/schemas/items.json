@@ -1,0 +1,94 @@
+{
+  "tableName": "items",
+  "description": "DynamoDB table for storing items with CRUD operations",
+  "primaryKey": {
+    "partitionKey": {
+      "name": "id",
+      "type": "S",
+      "description": "Unique identifier for the item"
+    }
+  },
+  "attributes": [
+    {
+      "name": "id",
+      "type": "S",
+      "required": true,
+      "description": "Unique identifier (UUID)"
+    },
+    {
+      "name": "name",
+      "type": "S",
+      "required": true,
+      "maxLength": 255,
+      "description": "Item name"
+    },
+    {
+      "name": "description",
+      "type": "S",
+      "required": false,
+      "description": "Item description"
+    },
+    {
+      "name": "status",
+      "type": "S",
+      "required": true,
+      "enum": ["active", "inactive", "archived"],
+      "description": "Item status"
+    },
+    {
+      "name": "createdAt",
+      "type": "N",
+      "required": true,
+      "description": "Unix timestamp when item was created"
+    },
+    {
+      "name": "updatedAt",
+      "type": "N",
+      "required": true,
+      "description": "Unix timestamp when item was last updated"
+    },
+    {
+      "name": "createdBy",
+      "type": "S",
+      "required": false,
+      "description": "User who created the item"
+    },
+    {
+      "name": "version",
+      "type": "N",
+      "required": true,
+      "description": "Item version for optimistic locking"
+    },
+    {
+      "name": "ttl",
+      "type": "N",
+      "required": false,
+      "description": "Unix timestamp for TTL expiration (optional)"
+    }
+  ],
+  "globalSecondaryIndexes": [
+    {
+      "indexName": "status-index",
+      "partitionKey": {
+        "name": "status",
+        "type": "S"
+      },
+      "sortKey": {
+        "name": "createdAt",
+        "type": "N"
+      },
+      "projection": "ALL",
+      "billingMode": "PAY_PER_REQUEST",
+      "description": "Index for querying items by status and creation time"
+    }
+  ],
+  "billingMode": "PAY_PER_REQUEST",
+  "encryption": "AWS_MANAGED",
+  "pointInTimeRecovery": true,
+  "ttlAttribute": "ttl",
+  "tags": {
+    "Environment": "dev|staging|prod",
+    "Application": "api-gateway-lambda",
+    "ManagedBy": "Terraform"
+  }
+}

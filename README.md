@@ -81,16 +81,20 @@ serverless-monorepo-aws/
    npm install
    ```
 
-3. **Initialize Terraform**
+3. **Initialize Terraform for dev environment**
    ```bash
-   cd infrastructure/environments/dev
-   terraform init
+   terraform -chdir=infrastructure/environments/dev init
    ```
 
 4. **Validate infrastructure**
    ```bash
-   npm run validate:terraform
+   terraform -chdir=infrastructure/environments/dev validate
    npm run validate:infrastructure
+   ```
+
+5. **Review infrastructure plan (optional)**
+   ```bash
+   terraform -chdir=infrastructure/environments/dev plan
    ```
 
 ## 🏗️ Architecture
@@ -256,34 +260,36 @@ npm run validate:destroy
 
 ### Development Environment
 ```bash
-cd infrastructure/environments/dev
-terraform init
-terraform plan
-terraform apply
+terraform -chdir=infrastructure/environments/dev init
+terraform -chdir=infrastructure/environments/dev plan
+terraform -chdir=infrastructure/environments/dev apply
 ```
 
 ### Staging Environment
 ```bash
-cd infrastructure/environments/staging
-terraform init
-terraform plan
-terraform apply
+terraform -chdir=infrastructure/environments/staging init
+terraform -chdir=infrastructure/environments/staging plan
+terraform -chdir=infrastructure/environments/staging apply
 ```
 
 ### Production Environment
 ```bash
-cd infrastructure/environments/prod
-terraform init
-terraform plan
-terraform apply  # Requires manual approval
+terraform -chdir=infrastructure/environments/prod init
+terraform -chdir=infrastructure/environments/prod plan
+terraform -chdir=infrastructure/environments/prod apply  # Requires manual approval
 ```
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Detailed architecture documentation
-- **[CONFIGURATION.md](./CONFIGURATION.md)** - Environment variables and configuration
-- **[OIDC_SETUP.md](./OIDC_SETUP.md)** - GitHub OIDC configuration guide
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Production deployment guide
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, components, data flow |
+| [CONFIGURATION.md](./CONFIGURATION.md) | Environment setup, variables, secrets |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Production deployment & rollback |
+| [infrastructure/README.md](./infrastructure/README.md) | Terraform structure & modules |
+| [infrastructure/scripts/README.md](./infrastructure/scripts/README.md) | Validation & cost analysis scripts |
+| [infrastructure/bootstrap/README.md](./infrastructure/bootstrap/README.md) | GitHub OIDC one-time setup |
+| [data/README.md](./data/README.md) | DynamoDB schemas & migrations |
 
 ## 🔍 Troubleshooting
 

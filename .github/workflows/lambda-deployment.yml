@@ -24,9 +24,34 @@ env:
   NODE_VERSION: '18'
 
 jobs:
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Checking for hardcoded AWS credentials..."
+          if grep -r "AKIA" apps/api-handler --include="*.js" --include="*.ts" --exclude-dir=node_modules; then
+            echo "ERROR: Found potential AWS access keys"
+            exit 1
+          fi
+          if grep -r "aws_secret_access_key" apps/api-handler --include="*.js" --include="*.ts" --exclude-dir=node_modules; then
+            echo "ERROR: Found hardcoded AWS secret keys"
+            exit 1
+          fi
+          if grep -r "BEGIN PRIVATE KEY\|BEGIN RSA PRIVATE KEY" apps/api-handler --include="*.js" --include="*.ts" --exclude-dir=node_modules; then
+            echo "ERROR: Found private keys"
+            exit 1
+          fi
+          echo "✓ No hardcoded secrets found"
+
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    needs: security-check
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

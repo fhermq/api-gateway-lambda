@@ -2,6 +2,27 @@
 
 This directory contains utility scripts for managing, validating, and optimizing the Terraform infrastructure. All scripts are designed to be run from the project root directory.
 
+## ⚠️ CRITICAL: Terraform Destroy Behavior
+
+**Important:** `terraform destroy` does NOT delete the following resources by design:
+- **S3 buckets** - AWS prevents accidental deletion of buckets
+- **DynamoDB tables** - AWS prevents accidental data loss
+- **CloudWatch log groups** - Logs are preserved for debugging
+
+These resources MUST be manually deleted to avoid unexpected AWS costs. Use the detection and cleanup scripts to identify and remove these resources.
+
+**Quick Start:**
+```bash
+# Detect resources that weren't destroyed
+./infrastructure/scripts/03-detect-orphaned-resources.sh dev all
+
+# Clean up S3 buckets with versioning
+./infrastructure/scripts/06-cleanup-s3-buckets.sh dev
+
+# Complete environment destruction with cleanup
+./infrastructure/scripts/07-destroy-environment.sh dev
+```
+
 ## Overview
 
 The infrastructure scripts provide automated validation, cost analysis, and resource management capabilities. Scripts are numbered to indicate execution order:
@@ -132,6 +153,15 @@ Validates Terraform configuration syntax, structure, and IAM policies.
 
 Identifies AWS resources not managed by Terraform and untagged resources.
 
+**CRITICAL: AWS Terraform Behavior**
+
+By design, `terraform destroy` does NOT delete the following resources:
+- **S3 buckets** - Even if empty, AWS prevents accidental deletion
+- **DynamoDB tables** - AWS prevents accidental data loss
+- **CloudWatch log groups** - Logs are preserved for debugging
+
+These resources MUST be manually deleted to avoid unexpected costs.
+
 **Usage:**
 ```bash
 ./infrastructure/scripts/03-detect-orphaned-resources.sh [environment] [resource-type]
@@ -144,13 +174,16 @@ Identifies AWS resources not managed by Terraform and untagged resources.
   - `dynamodb` - DynamoDB tables only
   - `s3` - S3 buckets only
   - `security-groups` - Security groups only
+  - `cloudwatch` - CloudWatch log groups only
   - `all` - All resource types
 
 **Detections:**
 - ✅ Orphaned Lambda functions
 - ✅ Orphaned DynamoDB tables
-- ✅ Orphaned S3 buckets
-- ✅ Orphaned security groups
+- ✅ Orphaned S3 buckets (with versioning status)
+- ✅ Orphaned security groups (excluding default SG)
+- ✅ Orphaned CloudWatch log groups
+- ✅ Resources that should have been destroyed but weren't
 - ✅ Untagged resources
 - ✅ Cost estimation for orphaned resources
 
@@ -164,12 +197,45 @@ Identifies AWS resources not managed by Terraform and untagged resources.
 
 # Check only DynamoDB tables in prod
 ./infrastructure/scripts/03-detect-orphaned-resources.sh prod dynamodb
+
+# Check only S3 buckets
+./infrastructure/scripts/03-detect-orphaned-resources.sh dev s3
+
+# Check only CloudWatch log groups
+./infrastructure/scripts/03-detect-orphaned-resources.sh dev cloudwatch
 ```
 
 **Output:**
 - Console output with orphaned resources list
 - Cost estimation for orphaned resources
 - Detection report saved to `orphaned-resources-report-TIMESTAMP.txt`
+
+**Manual Cleanup Options:**
+
+Option 1: AWS Console (Recommended for first-time users)
+```
+1. Go to AWS Console
+2. Navigate to S3, DynamoDB, or CloudWatch Logs
+3. Find resources matching your environment pattern
+4. Delete them manually
+```
+
+Option 2: AWS CLI (Use with caution)
+```bash
+# Delete S3 bucket (removes all versions and delete markers)
+aws s3 rb s3://bucket-name --force
+
+# Delete DynamoDB table
+aws dynamodb delete-table --table-name table-name
+
+# Delete CloudWatch log group
+aws logs delete-log-group --log-group-name /path/to/logs
+```
+
+Option 3: Use cleanup script (Automated)
+```bash
+./infrastructure/scripts/06-cleanup-s3-buckets.sh dev
+```
 
 **Requirements Validated:**
 - Requirement 10.1: Infrastructure validation scripts
