@@ -89,7 +89,7 @@ jobs:
       - name: Terraform Plan
         run: |
           cd infrastructure/global
-          terraform plan -backend=false -out=tfplan
+          terraform plan -out=tfplan
 
       - name: Terraform Apply
         run: |
