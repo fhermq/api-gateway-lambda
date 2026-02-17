@@ -5,16 +5,18 @@ on:
     branches:
       - main
     paths:
-      - 'infrastructure/**/*.tf'
-      - 'infrastructure/**/*.tfvars'
+      - 'infrastructure/environments/**/*.tf'
+      - 'infrastructure/environments/**/*.tfvars'
+      - 'infrastructure/modules/**/*.tf'
       - 'infrastructure/scripts/**'
       - '.github/workflows/infrastructure-provisioning.yml'
   pull_request:
     branches:
       - main
     paths:
-      - 'infrastructure/**/*.tf'
-      - 'infrastructure/**/*.tfvars'
+      - 'infrastructure/environments/**/*.tf'
+      - 'infrastructure/environments/**/*.tfvars'
+      - 'infrastructure/modules/**/*.tf'
       - 'infrastructure/scripts/**'
   workflow_dispatch:
 
@@ -38,14 +40,8 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: Terraform Format Check
-        run: terraform fmt -check -recursive infrastructure/
+        run: terraform fmt -check -recursive infrastructure/environments infrastructure/modules
         continue-on-error: true
-
-      - name: Validate Global
-        run: |
-          cd infrastructure/global
-          terraform init -backend=false
-          terraform validate
 
       - name: Validate Dev
         run: |
@@ -65,46 +61,10 @@ jobs:
           terraform init -backend=false
           terraform validate
 
-  deploy-global:
-    name: Deploy Global
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Terraform Init (no backend)
-        run: |
-          cd infrastructure/global
-          terraform init -backend=false
-
-      - name: Terraform Plan
-        run: |
-          cd infrastructure/global
-          terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        run: |
-          cd infrastructure/global
-          terraform apply -auto-approve tfplan
-
-      - name: Terraform Init (with backend)
-        run: |
-          cd infrastructure/global
-          terraform init -backend=true -reconfigure -input=false
-
   plan-dev:
     name: Plan Dev
     runs-on: ubuntu-latest
-    needs: deploy-global
+    needs: validate
     steps:
       - uses: actions/checkout@v4
 
@@ -132,7 +92,7 @@ jobs:
   plan-staging:
     name: Plan Staging
     runs-on: ubuntu-latest
-    needs: deploy-global
+    needs: validate
     steps:
       - uses: actions/checkout@v4
 
@@ -160,7 +120,7 @@ jobs:
   plan-prod:
     name: Plan Prod
     runs-on: ubuntu-latest
-    needs: deploy-global
+    needs: validate
     steps:
       - uses: actions/checkout@v4
 
@@ -216,4 +176,74 @@ jobs:
       - name: Output
         run: |
           cd infrastructure/environments/dev
+          terraform output
+
+  apply-staging:
+    name: Apply Staging
+    runs-on: ubuntu-latest
+    needs: plan-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-staging
+          path: infrastructure/environments/staging/
+
+      - name: Apply
+        run: |
+          cd infrastructure/environments/staging
+          terraform init
+          terraform apply -auto-approve tfplan
+
+      - name: Output
+        run: |
+          cd infrastructure/environments/staging
+          terraform output
+
+  apply-prod:
+    name: Apply Prod
+    runs-on: ubuntu-latest
+    needs: plan-prod
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-prod
+          path: infrastructure/environments/prod/
+
+      - name: Apply
+        run: |
+          cd infrastructure/environments/prod
+          terraform init
+          terraform apply -auto-approve tfplan
+
+      - name: Output
+        run: |
+          cd infrastructure/environments/prod
           terraform output

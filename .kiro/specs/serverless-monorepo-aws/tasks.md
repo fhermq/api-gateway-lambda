@@ -427,7 +427,7 @@ Each task builds incrementally on previous work, with checkpoints to validate pr
   - Add step to log deployment to CloudWatch
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9_
 
-- [ ] 28. Implement Data Layer - DynamoDB Schemas and Migrations
+- [~] 28. Implement Data Layer - DynamoDB Schemas and Migrations
   - Create data/schemas/items.json with DynamoDB table schema definition
   - Create data/migrations/001_create_items_table.js with migration script
   - Create data/seeds/dev_seed.js with seed data for development environment

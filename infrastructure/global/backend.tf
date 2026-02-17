@@ -1,7 +1,5 @@
 # Backend configuration for global infrastructure
 # This stores the global state in S3 after initial creation
-# Note: On first deployment, use: terraform init -backend=false
-# Then after S3 bucket is created, run: terraform init -migrate-state
 
 terraform {
   backend "s3" {
