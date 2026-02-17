@@ -83,7 +83,7 @@ jobs:
           terraform init
           terraform plan -out=tfplan
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: tfplan-dev
           path: infrastructure/environments/dev/tfplan
@@ -111,7 +111,7 @@ jobs:
           terraform init
           terraform plan -out=tfplan
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: tfplan-staging
           path: infrastructure/environments/staging/tfplan
@@ -139,7 +139,7 @@ jobs:
           terraform init
           terraform plan -out=tfplan
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: tfplan-prod
           path: infrastructure/environments/prod/tfplan
@@ -162,7 +162,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: tfplan-dev
           path: infrastructure/environments/dev/
