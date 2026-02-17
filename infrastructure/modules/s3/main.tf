@@ -31,6 +31,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_code" {
   rule {
     id     = "delete-old-versions"
     status = "Enabled"
+    filter {}
 
     noncurrent_version_expiration {
       noncurrent_days = 7
@@ -112,6 +113,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_code_logs" {
   rule {
     id     = "delete-old-logs"
     status = "Enabled"
+    filter {}
 
     expiration {
       days = 30
@@ -119,11 +121,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_code_logs" {
 
     noncurrent_version_expiration {
       noncurrent_days = 7
-    }
-
-    # Remove delete markers
-    expiration {
-      expired_object_delete_marker = true
     }
   }
 }
