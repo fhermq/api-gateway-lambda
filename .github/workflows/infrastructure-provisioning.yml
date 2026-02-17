@@ -81,10 +81,10 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/api-gateway-lambda-Infrastructure_Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init
+      - name: Terraform Init (no backend)
         run: |
           cd infrastructure/global
-          terraform init
+          terraform init -backend=false
 
       - name: Terraform Plan
         run: |
