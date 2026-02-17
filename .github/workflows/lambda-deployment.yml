@@ -180,10 +180,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/lambda \
+            --log-stream-name dev-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name dev-deployment \
-            --log-events timestamp=$(date +%s000),message="Dev Lambda deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Dev Lambda deployment completed"
 
   deploy-staging:
     name: Deploy to Staging
@@ -229,10 +232,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/lambda \
+            --log-stream-name staging-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name staging-deployment \
-            --log-events timestamp=$(date +%s000),message="Staging Lambda deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Staging Lambda deployment completed"
 
   deploy-prod:
     name: Deploy to Prod
@@ -278,10 +284,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/lambda \
+            --log-stream-name prod-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/lambda \
             --log-stream-name prod-deployment \
-            --log-events timestamp=$(date +%s000),message="Prod Lambda deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Prod Lambda deployment completed"
 
   smoke-tests:
     name: Smoke Tests

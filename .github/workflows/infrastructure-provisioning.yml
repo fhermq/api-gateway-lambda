@@ -168,10 +168,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/infrastructure \
+            --log-stream-name dev-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/infrastructure \
             --log-stream-name dev-deployment \
-            --log-events timestamp=$(date +%s000),message="Dev infrastructure deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Dev infrastructure deployment completed"
 
   apply-staging:
     name: Apply Staging Infrastructure
@@ -217,10 +220,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/infrastructure \
+            --log-stream-name staging-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/infrastructure \
             --log-stream-name staging-deployment \
-            --log-events timestamp=$(date +%s000),message="Staging infrastructure deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Staging infrastructure deployment completed"
 
   apply-prod:
     name: Apply Prod Infrastructure
@@ -266,10 +272,13 @@ jobs:
       - name: Log to CloudWatch
         if: always()
         run: |
+          aws logs create-log-stream \
+            --log-group-name /aws/github-actions/infrastructure \
+            --log-stream-name prod-deployment || true
           aws logs put-log-events \
             --log-group-name /aws/github-actions/infrastructure \
             --log-stream-name prod-deployment \
-            --log-events timestamp=$(date +%s000),message="Prod infrastructure deployment completed successfully"
+            --log-events timestamp=$(date +%s000),message="Prod infrastructure deployment completed"
 
   cleanup:
     name: Cleanup Artifacts
